@@ -45,4 +45,15 @@ public class FileUtils {
         return file;
     }
 
+    /**
+     * 创建文件
+     * @param filePath 根路径
+     * @param fileName 文件名
+     * @return
+     */
+    public static File createFile(String filePath,String fileName)throws Exception{
+        String fileDir=filePath+File.separator+fileName;
+        return createFile(fileDir);
+    }
+
 }
