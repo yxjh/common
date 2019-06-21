@@ -2,13 +2,14 @@ package com.yxjh.api.file;
 
 import org.apache.commons.codec.binary.Base64;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * @program: common
@@ -121,5 +122,146 @@ public class FileUtils {
         return result;
     }
 
+    /**
+     * 单文件压缩
+     * @param sourceFile
+     * @param zipFile
+     * @return
+     */
+    public static boolean zipUtil(File sourceFile,File zipFile){
+        DataInputStream dis = null;
+        //输出
+        ZipOutputStream zos = null;
+        ZipEntry ze = null;
+        try {
+            if(sourceFile.isFile()){
+                //输入-获取数据
+                dis=new DataInputStream(new BufferedInputStream(new FileInputStream(sourceFile)));
+                //输出-写出数据
+                zos=new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(zipFile),1024));
+                ze = new ZipEntry(sourceFile.getName()); //实体ZipEntry保存
+                ze.setSize(sourceFile.length());
+                ze.setTime(sourceFile.lastModified());
+                zos.putNextEntry(ze);
+                int len = 0;//临时文件
+                byte[] bts = new byte[1024]; //读取缓冲
+                while((len=dis.read(bts)) != -1){ //每次读取1024个字节
+                    zos.write(bts, 0, len); //每次写len长度数据，最后前一次都是1024，最后一次len长度
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally{
+            try {
+                if(null!=zos)
+                zos.closeEntry();
+                if(null!=zos)
+                zos.close();
+                if(null!=dis)
+                dis.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return true;
+    }
 
+    /**
+     * 多文件压缩
+     * @param fileList
+     * @param zipFile
+     * @return
+     */
+    public static boolean zipUtil(List<File>fileList,File zipFile){
+        ZipOutputStream zos = null;
+        ZipEntry ze=null;
+        DataInputStream dis = null;
+       try {
+           zos=new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(zipFile)));
+           byte[] buf=new byte[1024];
+           int readLen=0;
+           for(int i = 0; i <fileList.size(); i++) {
+               File f=fileList.get(i);
+               ze=new ZipEntry(f.getName());
+               ze.setSize(f.length());
+               ze.setTime(f.lastModified());
+               zos.putNextEntry(ze);
+               dis=new DataInputStream(new BufferedInputStream(new FileInputStream(f)));
+               while ((readLen=dis.read(buf, 0, 1024))!=-1) {
+                   zos.write(buf, 0, readLen);
+               }
+           }
+       }catch (Exception e){
+        e.printStackTrace();
+       }finally {
+           try {
+               zos.closeEntry();
+               zos.close();
+               dis.close();
+           }catch (Exception e){
+               e.printStackTrace();
+           }
+       }
+       return true;
+    }
+
+    public static void zipUtil(File sourceFile,File zipFile,boolean keepDirStructure){
+        ZipOutputStream zos=null;
+        try {
+            zos=new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(zipFile),1024));
+            //compress(sourceFile,zos,sourceFile.getName(),keepDirStructure);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+    public static void main(String[]args)throws Exception{
+        File sourceFile1=new File("D:/apache/tomcat/files/szxy/product/my");
+        File sourceFile2=new File("D:/apache/tomcat/files/szxy/product/2.jpg");
+        List<File>files=new ArrayList<>();
+        files.add(sourceFile1);
+        files.add(sourceFile2);
+        File zipFile=new File("D:/apache/tomcat/files/szxy/product/my.zip");
+        //zipUtil(sourceFile1,zipFile,true);
+        //zipUtil(files,zipFile);
+        //zipUtil(sourceFile1,zipFile,true);
+        compressedFile(sourceFile1,zipFile);
+       // zipUtil("D:/apache/tomcat/files/asjxs/szxy/product/12.jpg","D:/apache/tomcat/files/asjxs/szxy/product/1.zip");
+    }
+
+    public static void compressedFile(File sourceFile,File zipFile) throws Exception{
+        FileOutputStream outputStream = new FileOutputStream(zipFile);
+        ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(outputStream));
+        createCompressedFile(out, sourceFile, "");
+        out.close();
+    }
+
+
+    public static void createCompressedFile(ZipOutputStream out,File file,String dir) throws Exception{
+        //如果当前的是文件夹，则进行进一步处理
+        if(file.isDirectory()){
+            //得到文件列表信息
+            File[] files = file.listFiles();
+            //将文件夹添加到下一级打包目录
+            out.putNextEntry(new ZipEntry(dir+"/"));
+            dir = dir.length() == 0 ? "" : dir +"/";
+            //循环将文件夹中的文件打包
+            for(int i = 0 ; i < files.length ; i++){
+                createCompressedFile(out, files[i], dir + files[i].getName());
+            }
+        }else{   //当前的是文件，打包处理
+            //文件输入流
+            DataInputStream dis=new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
+            out.putNextEntry(new ZipEntry(dir));
+            //进行写操作
+            int j =  0;
+            byte[] buffer = new byte[1024];
+            while((j = dis.read(buffer)) > 0){
+                out.write(buffer,0,j);
+            }
+            dis.close();
+        }
+    }
 }
