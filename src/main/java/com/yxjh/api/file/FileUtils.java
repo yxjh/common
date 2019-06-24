@@ -2,7 +2,6 @@ package com.yxjh.api.file;
 
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -88,10 +87,12 @@ public class FileUtils {
      */
     public static boolean zipUtil(File sourceFile,File zipFile){
         DataInputStream dis = null;
-        //输出
         ZipOutputStream zos = null;
         ZipEntry ze = null;
         try {
+            if(!zipFile.isFile()){
+                throw new Exception("Not found this file and the file is a Directory ："+zipFile.getName());
+            }
             if(sourceFile.isFile()){
                 //输入-获取数据
                 dis=new DataInputStream(new BufferedInputStream(new FileInputStream(sourceFile)));
@@ -107,7 +108,7 @@ public class FileUtils {
                     zos.write(bts, 0, len); //每次写len长度数据，最后前一次都是1024，最后一次len长度
                 }
             }else {
-                throw new Exception("NOT FOUND THIS FILE AND THE FILE NAME IS ："+sourceFile.getName());
+                throw new Exception("Not found this file and the file is a Directory ："+sourceFile.getName());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -136,7 +137,10 @@ public class FileUtils {
         ZipOutputStream zos = null;
         ZipEntry ze=null;
         DataInputStream dis = null;
-       try {
+        try {
+            if(!zipFile.isFile()){
+                throw new Exception("Not found this file and the file is a Directory ："+zipFile.getName());
+            }
            zos=new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(zipFile)));
            byte[] buf=new byte[1024];
            int readLen=0;
@@ -174,32 +178,34 @@ public class FileUtils {
      * 文件夹压缩
      * @param sourceFile
      * @param zipFile
-     * @param keepDirStructure
+     * @param keepDirStructure true保留文件目录结构，false空目录会过滤
      */
     public static void zipUtil(File sourceFile,File zipFile,boolean keepDirStructure){
         try {
             FileOutputStream outputStream = new FileOutputStream(zipFile);
             ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(outputStream));
-            createCompressedFile(out, sourceFile, "");
+            createCompressedFile(out, sourceFile, "",keepDirStructure);
             out.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static void createCompressedFile(ZipOutputStream out,File file,String dir) throws Exception{
+    private static void createCompressedFile(ZipOutputStream out,File file,String dir,boolean keepDirStructure) throws Exception{
         //如果当前的是文件夹，则进行进一步处理
         if(file.isDirectory()){
             //得到文件列表信息
             File[] files = file.listFiles();
             //将文件夹添加到下一级打包目录
-            if(!dir.equals("")){
-                out.putNextEntry(new ZipEntry(dir+"/"));
+            if(keepDirStructure){
+                if(!dir.equals("")){
+                    out.putNextEntry(new ZipEntry(dir+"/"));
+                }
             }
             dir = dir.length() == 0 ? "" : dir +"/";
             //循环将文件夹中的文件打包
             for(int i = 0 ; i < files.length ; i++){
-                createCompressedFile(out, files[i], dir + files[i].getName());
+                createCompressedFile(out, files[i], dir + files[i].getName(),keepDirStructure);
             }
         }else{   //当前的是文件，打包处理
             //文件输入流
@@ -214,23 +220,4 @@ public class FileUtils {
             dis.close();
         }
     }
-
-
-
-    public static void main(String[]args)throws Exception{
-        File sourceFile1=new File("D:/apache/tomcat/files/szxy/product/my/");
-        File sourceFile2=new File("D:/apache/tomcat/files/szxy/product/2.jpg");
-        List<File>files=new ArrayList<>();
-        files.add(sourceFile1);
-        files.add(sourceFile2);
-        File zipFile=new File("D:/apache/tomcat/files/szxy/product/my.zip");
-        //zipUtil(sourceFile1,zipFile,true);
-        //zipUtil(files,zipFile);
-        //zipUtil(sourceFile1,zipFile,true);
-        zipUtil(sourceFile1,zipFile,true);
-       // zipUtil("D:/apache/tomcat/files/asjxs/szxy/product/12.jpg","D:/apache/tomcat/files/asjxs/szxy/product/1.zip");
-    }
-
-
-
 }
